@@ -10,7 +10,13 @@ class PriceScreen extends StatefulWidget {
 }
 
 class _PriceScreenState extends State<PriceScreen> {
+  CoinData coinData = CoinData();
   String selectedCurrency = currenciesList[0];
+  Map<String, String> coinPrices = {
+    'BTC': '?',
+    'ETH': '?',
+    'LTC': '?',
+  };
 
   DropdownButton<String> androidDropdown() {
     return DropdownButton<String>(
@@ -22,9 +28,15 @@ class _PriceScreenState extends State<PriceScreen> {
             ),
           )
           .toList(),
-      onChanged: (value) {
+      onChanged: (value) async {
+        double btcCoinPrice = await coinData.getCoinData('BTC', value!);
+        double ethCoinPrice = await coinData.getCoinData('ETH', value);
+        double ltcCoinPrice = await coinData.getCoinData('LTC', value);
         setState(() {
-          selectedCurrency = value!;
+          selectedCurrency = value;
+          coinPrices['BTC'] = btcCoinPrice.toStringAsFixed(2);
+          coinPrices['ETH'] = ethCoinPrice.toStringAsFixed(2);
+          coinPrices['LTC'] = ltcCoinPrice.toStringAsFixed(2);
         });
       },
       value: selectedCurrency,
@@ -34,8 +46,18 @@ class _PriceScreenState extends State<PriceScreen> {
   CupertinoPicker iOSPicker() {
     return CupertinoPicker(
         itemExtent: 32.0,
-        onSelectedItemChanged: (selectedIndex) =>
-            setState(() => selectedCurrency = currenciesList[selectedIndex]),
+        onSelectedItemChanged: (selectedIndex) async {
+          String fiatCurrency = currenciesList[selectedIndex];
+          double btcCoinPrice = await coinData.getCoinData('BTC', fiatCurrency);
+          double ethCoinPrice = await coinData.getCoinData('ETH', fiatCurrency);
+          double ltcCoinPrice = await coinData.getCoinData('LTC', fiatCurrency);
+          setState(() {
+            selectedCurrency = fiatCurrency;
+            coinPrices['BTC'] = btcCoinPrice.toStringAsFixed(2);
+            coinPrices['ETH'] = ethCoinPrice.toStringAsFixed(2);
+            coinPrices['LTC'] = ltcCoinPrice.toStringAsFixed(2);
+          });
+        },
         children: currenciesList.map((currency) => Text(currency)).toList());
   }
 
@@ -51,23 +73,9 @@ class _PriceScreenState extends State<PriceScreen> {
         children: <Widget>[
           Padding(
             padding: EdgeInsets.fromLTRB(18.0, 18.0, 18.0, 0),
-            child: Card(
-              color: Colors.lightBlueAccent,
-              elevation: 5.0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.0),
-              ),
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 28.0),
-                child: Text(
-                  '1 BTC = ? USD',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20.0,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: coinPriceWidgets(),
             ),
           ),
           Container(
@@ -80,5 +88,31 @@ class _PriceScreenState extends State<PriceScreen> {
         ],
       ),
     );
+  }
+
+  List<Card> coinPriceWidgets() {
+    List<Card> priceCards = [];
+    for (String cryptoCoin in cryptoList) {
+      Card priceCard = Card(
+        color: Colors.lightBlueAccent,
+        elevation: 5.0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 28.0),
+          child: Text(
+            '1 $cryptoCoin = ${coinPrices[cryptoCoin]} $selectedCurrency',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 20.0,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
+      priceCards.add(priceCard);
+    }
+    return priceCards;
   }
 }
