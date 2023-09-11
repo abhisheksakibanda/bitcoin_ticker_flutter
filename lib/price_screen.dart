@@ -28,16 +28,8 @@ class _PriceScreenState extends State<PriceScreen> {
             ),
           )
           .toList(),
-      onChanged: (value) async {
-        double btcCoinPrice = await coinData.getCoinData('BTC', value!);
-        double ethCoinPrice = await coinData.getCoinData('ETH', value);
-        double ltcCoinPrice = await coinData.getCoinData('LTC', value);
-        setState(() {
-          selectedCurrency = value;
-          coinPrices['BTC'] = btcCoinPrice.toStringAsFixed(2);
-          coinPrices['ETH'] = ethCoinPrice.toStringAsFixed(2);
-          coinPrices['LTC'] = ltcCoinPrice.toStringAsFixed(2);
-        });
+      onChanged: (currency) async {
+        setPrices(currency!);
       },
       value: selectedCurrency,
     );
@@ -45,20 +37,29 @@ class _PriceScreenState extends State<PriceScreen> {
 
   CupertinoPicker iOSPicker() {
     return CupertinoPicker(
-        itemExtent: 32.0,
-        onSelectedItemChanged: (selectedIndex) async {
-          String fiatCurrency = currenciesList[selectedIndex];
-          double btcCoinPrice = await coinData.getCoinData('BTC', fiatCurrency);
-          double ethCoinPrice = await coinData.getCoinData('ETH', fiatCurrency);
-          double ltcCoinPrice = await coinData.getCoinData('LTC', fiatCurrency);
-          setState(() {
-            selectedCurrency = fiatCurrency;
-            coinPrices['BTC'] = btcCoinPrice.toStringAsFixed(2);
-            coinPrices['ETH'] = ethCoinPrice.toStringAsFixed(2);
-            coinPrices['LTC'] = ltcCoinPrice.toStringAsFixed(2);
-          });
-        },
-        children: currenciesList.map((currency) => Text(currency)).toList());
+      itemExtent: 32.0,
+      onSelectedItemChanged: (selectedIndex) {
+        String fiatCurrency = currenciesList[selectedIndex];
+        setPrices(fiatCurrency);
+      },
+      children: currenciesList.map((currency) => Text(currency)).toList(),
+    );
+  }
+
+  Future<void> setPrices(String currency) async {
+    for (String cryptoCoin in cryptoList) {
+      double coinPrice = await coinData.getCoinData(cryptoCoin, currency);
+      coinPrices[cryptoCoin] = coinPrice.toStringAsFixed(2);
+    }
+    setState(() {
+      selectedCurrency = currency;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    setPrices(selectedCurrency);
   }
 
   @override
